@@ -1,0 +1,131 @@
+//@version=6
+// Tested Pips - Video #2: ICT Silver Bullet backtest  (v1.1)
+// One precise, published version of the setup:
+//   1. Window: 10:00-11:00 New York time (inputs allow 03:00-04:00 and 14:00-15:00)
+//   2. Liquidity sweep: inside the window, price trades beyond the most recent confirmed swing high/low
+//   3. Fair value gap: after the sweep, a 3-candle FVG forms in the opposite direction (displacement)
+//   4. Entry: limit order at the near edge of the FVG (or its midpoint), placed only inside the window
+//   5. Stop: 1 tick beyond the sweep extreme
+//   6. Target: opposite liquidity (most recent swing on the other side), or a fixed R multiple
+//   7. Max one trade per day; unfilled orders cancelled at window end (no fills after the window); open trades closed at 16:00 NY
+// v1.1: orders are cancelled on the last window bar so nothing can fill after the window; 16:00 exit now fills at 16:00, not 16:05
+// Costs (same as Video 1): 0.0035% commission per side (~$7 per round lot) + 5 ticks slippage on market/stop fills
+// Risk: 1% of equity per trade, position capped at 30:1 leverage
+strategy("Tested Pips - ICT Silver Bullet", overlay=true, initial_capital=10000, currency=currency.USD, commission_type=strategy.commission.percent, commission_value=0.0035, slippage=5, pyramiding=0, calc_on_every_tick=false, margin_long=1, margin_short=1, process_orders_on_close=false)
+
+// ===== Inputs =====
+winSel      = input.string("NY AM 10-11", "Silver Bullet window", options=["London 03-04", "NY AM 10-11", "NY PM 14-15"])
+pivLen      = input.int(5, "Swing strength (bars each side)", minval=1)
+needSweep   = input.bool(true, "Require liquidity sweep")
+entryMode   = input.string("FVG edge", "Entry", options=["FVG edge", "FVG midpoint"])
+targetMode  = input.string("Opposite liquidity", "Target", options=["Opposite liquidity", "Fixed R"])
+fixedR      = input.float(2.0, "Fixed R (if Target = Fixed R)", minval=0.5, step=0.5)
+minRR       = input.float(1.0, "Min reward:risk to take trade (liquidity target)", minval=0.1, step=0.1)
+riskPct     = input.float(1.0, "Risk % of equity per trade")
+maxLev      = input.float(30.0, "Max leverage (position cap)")
+
+TZ = "America/New_York"
+sess = winSel == "London 03-04" ? "0300-0400" : winSel == "NY AM 10-11" ? "1000-1100" : "1400-1500"
+inWin  = not na(time(timeframe.period, sess, TZ))
+nextInWin  = not na(time(timeframe.period, sess, TZ, -1))   // is the NEXT bar still inside the window?
+lastWinBar = inWin and not nextInWin
+eodBar = not na(time(timeframe.period, "1555-1700", TZ))      // close on the 15:55 bar -> fills at 16:00 open
+
+// ===== New-day reset (New York calendar day) =====
+nyDay  = dayofmonth(time, TZ)
+newDay = nyDay != nyDay[1]
+
+// ===== Swing points (confirmed pivots) =====
+ph = ta.pivothigh(high, pivLen, pivLen)
+pl = ta.pivotlow(low, pivLen, pivLen)
+var float lastSwingHigh = na
+var float lastSwingLow  = na
+if not na(ph)
+    lastSwingHigh := ph
+if not na(pl)
+    lastSwingLow := pl
+
+// ===== State =====
+var bool  tradedToday = false
+var bool  bslSwept    = false   // buy-side liquidity taken (look for shorts)
+var bool  sslSwept    = false   // sell-side liquidity taken (look for longs)
+var float sweepHigh   = na
+var float sweepLow    = na
+var float sweptLevelH = na
+var float sweptLevelL = na
+
+if newDay
+    tradedToday := false
+    bslSwept    := false
+    sslSwept    := false
+    sweepHigh   := na
+    sweepLow    := na
+
+// Sweeps only count inside the window
+if inWin and not na(lastSwingHigh) and high > lastSwingHigh and not bslSwept
+    bslSwept    := true
+    sweptLevelH := lastSwingHigh
+    sweepHigh   := high
+if inWin and not na(lastSwingLow) and low < lastSwingLow and not sslSwept
+    sslSwept    := true
+    sweptLevelL := lastSwingLow
+    sweepLow    := low
+if bslSwept
+    sweepHigh := math.max(nz(sweepHigh, high), high)
+if sslSwept
+    sweepLow := math.min(nz(sweepLow, low), low)
+
+// ===== Fair value gaps (3-candle) =====
+bearFVG = low[2] > high and close[1] < open[1]    // gap between candle 1 low and candle 3 high, bearish displacement
+bullFVG = high[2] < low and close[1] > open[1]    // gap between candle 1 high and candle 3 low, bullish displacement
+
+fx = request.currency_rate(syminfo.currency, "USD")
+calcQty(dist, px) =>
+    riskQty = (strategy.equity * riskPct / 100) / (dist * syminfo.pointvalue * fx)
+    capQty  = (strategy.equity * maxLev) / (px * syminfo.pointvalue * fx)
+    math.max(math.min(riskQty, capQty), 0)
+
+flat = strategy.position_size == 0
+canTrade = inWin and not lastWinBar and flat and not tradedToday and strategy.opentrades == 0
+
+// ---- Short setup: buy-side liquidity swept, then bearish FVG ----
+if canTrade and bearFVG and (bslSwept or not needSweep)
+    gapTop = low[2]
+    gapBot = high
+    entry  = entryMode == "FVG edge" ? gapBot : (gapTop + gapBot) / 2
+    stopPx = (needSweep ? sweepHigh : math.max(high, high[1], high[2])) + syminfo.mintick
+    risk   = stopPx - entry
+    tgt    = targetMode == "Fixed R" ? entry - risk * fixedR : lastSwingLow
+    okTgt  = not na(tgt) and tgt < entry and (targetMode == "Fixed R" or (entry - tgt) / risk >= minRR)
+    if risk > 0 and okTgt
+        strategy.entry("Short", strategy.short, qty=calcQty(risk, entry), limit=entry)
+        strategy.exit("Short X", "Short", stop=stopPx, limit=tgt)
+        tradedToday := true
+
+// ---- Long setup: sell-side liquidity swept, then bullish FVG ----
+if canTrade and not tradedToday and bullFVG and (sslSwept or not needSweep)
+    gapBot = high[2]
+    gapTop = low
+    entry  = entryMode == "FVG edge" ? gapTop : (gapTop + gapBot) / 2
+    stopPx = (needSweep ? sweepLow : math.min(low, low[1], low[2])) - syminfo.mintick
+    risk   = entry - stopPx
+    tgt    = targetMode == "Fixed R" ? entry + risk * fixedR : lastSwingHigh
+    okTgt  = not na(tgt) and tgt > entry and (targetMode == "Fixed R" or (tgt - entry) / risk >= minRR)
+    if risk > 0 and okTgt
+        strategy.entry("Long", strategy.long, qty=calcQty(risk, entry), limit=entry)
+        strategy.exit("Long X", "Long", stop=stopPx, limit=tgt)
+        tradedToday := true
+
+// Unfilled limit orders expire when the window closes (cancelled on the last window bar, so nothing fills after it)
+if not inWin or lastWinBar
+    strategy.cancel("Short")
+    strategy.cancel("Long")
+
+// Close anything still open at 16:00 New York
+if eodBar and strategy.position_size != 0
+    strategy.close_all(comment="16:00 NY close")
+
+// ===== Visuals =====
+bgcolor(inWin ? color.new(#00D9FF, 90) : na, title="Silver Bullet window")
+plot(lastSwingHigh, "Last swing high", color=color.new(#FF4D5A, 40), style=plot.style_stepline)
+plot(lastSwingLow,  "Last swing low",  color=color.new(#00D9FF, 40), style=plot.style_stepline)
