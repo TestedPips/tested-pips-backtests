@@ -1,0 +1,10 @@
+version,pair,window,cost_setting,net_pct,max_dd_pct,win_rate_pct,wins,trades,profit_factor
+A,USDJPY,NY AM 10-11,full costs (0.0035% comm + 5 ticks slip),-35.55,50.35,34.85,237,680,0.893
+A,USDJPY,NY AM 10-11,commission only,-8.36,43.48,35.15,239,680,0.978
+A,USDJPY,NY AM 10-11,zero costs,105.53,31.29,36.03,245,680,1.205
+B,USDJPY,NY AM 10-11,full costs (0.0035% comm + 5 ticks slip),-47.79,70.13,36.80,417,1133,0.901
+B,USDJPY,NY AM 10-11,zero costs,304.76,47.06,37.51,425,1133,1.236
+A,EURUSD,NY AM 10-11,full costs (0.0035% comm + 5 ticks slip),-70.50,72.86,29.83,139,466,0.648
+A,EURUSD,NY AM 10-11,zero costs,-30.95,41.59,30.04,140,466,0.869
+A,AUDUSD,NY AM 10-11,full costs (0.0035% comm + 5 ticks slip),-82.82,83.49,28.35,186,656,0.634
+A,AUDUSD,NY AM 10-11,zero costs,-44.35,55.17,28.81,189,656,0.848
