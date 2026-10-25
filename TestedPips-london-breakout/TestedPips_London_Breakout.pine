@@ -1,0 +1,94 @@
+//@version=6
+// Tested Pips - Video #3: London Breakout backtest  (v1.2)
+// v1.1: if the 06:55 bar is missing from the data, orders are placed on the first bar of the entry window instead
+// v1.2: optional switch to skip US NFP and CPI release days (off by default; dates from the official BLS release schedules)
+// One precise, published version of the setup:
+//   1. Asian range: high and low from 00:00 to 07:00 London time
+//   2. At 07:00 London, place a buy stop 1 pip above the range high and a sell stop 1 pip below the range low (one cancels the other)
+//   3. Entry window: 07:00-10:00 London. Unfilled orders are cancelled on the last window bar (no fills after 10:00)
+//   4. Stop loss: Version A = 1 pip beyond the opposite side of the range (as usually taught). Version B = range midpoint
+//   5. Target: 1R, 2R, or no target (hold to the 16:00 London close)
+//   6. One trade per day; anything still open at 16:00 London is closed
+// Costs (same as Videos 1 and 2): 0.0035% commission per side (~$7 per round lot) + 5 ticks (0.5 pip) slippage on market/stop fills
+// Risk: 1% of equity per trade, position capped at 30:1 leverage
+strategy("Tested Pips - London Breakout", overlay=true, initial_capital=10000, currency=currency.USD, commission_type=strategy.commission.percent, commission_value=0.0035, slippage=5, pyramiding=0, calc_on_every_tick=false, margin_long=1, margin_short=1, process_orders_on_close=false)
+
+// ===== Inputs =====
+stopMode   = input.string("A: Opposite side", "Stop loss", options=["A: Opposite side", "B: Range midpoint"])
+targetMode = input.string("1R", "Target", options=["1R", "2R", "16:00 close"])
+bufPips    = input.float(1.0, "Breakout buffer (pips)", minval=0, step=0.5)
+riskPct    = input.float(1.0, "Risk % of equity per trade")
+maxLev     = input.float(30.0, "Max leverage (position cap)")
+rangeSess  = input.session("0000-0700", "Asian range (London time)")
+entrySess  = input.session("0700-1000", "Entry window (London time)")
+skipNews   = input.bool(false, "Skip US NFP and CPI days")
+
+// US Employment Situation (NFP) and CPI release dates, Mar 2017 - Oct 2026 (BLS schedules; 08:30 New York = 13:30 London)
+newsDates = "20170106,20170118,20170203,20170215,20170310,20170315,20170407,20170414,20170505,20170512,20170602,20170614,20170707,20170714,20170804,20170811,20170901,20170914,20171006,20171013,20171103,20171115,20171208,20171213,20180105,20180112,20180202,20180214,20180309,20180313,20180406,20180411,20180504,20180510,20180601,20180612,20180706,20180712,20180803,20180810,20180907,20180913,20181005,20181011,20181102,20181114,20181207,20181212,20190104,20190111,20190201,20190213,20190308,20190312,20190405,20190410,20190503,20190510,20190607,20190612,20190705,20190711,20190802,20190813,20190906,20190912,20191004,20191010,20191101,20191113,20191206,20191211,20200110,20200114,20200207,20200213,20200306,20200311,20200403,20200410,20200508,20200512,20200605,20200610,20200702,20200714,20200807,20200812,20200904,20200911,20201002,20201013,20201106,20201112,20201204,20201210,20210108,20210113,20210205,20210210,20210305,20210310,20210402,20210413,20210507,20210512,20210604,20210610,20210702,20210713,20210806,20210811,20210903,20210914,20211008,20211013,20211105,20211110,20211203,20211210,20220107,20220112,20220204,20220210,20220304,20220310,20220401,20220412,20220506,20220511,20220603,20220610,20220708,20220713,20220805,20220810,20220902,20220913,20221007,20221013,20221104,20221110,20221202,20221213,20230106,20230112,20230203,20230214,20230310,20230314,20230407,20230412,20230505,20230510,20230602,20230613,20230707,20230712,20230804,20230810,20230901,20230913,20231006,20231012,20231103,20231114,20231208,20231212,20240105,20240111,20240202,20240213,20240308,20240312,20240405,20240410,20240503,20240515,20240607,20240612,20240705,20240711,20240802,20240814,20240906,20240911,20241004,20241010,20241101,20241113,20241206,20241211,20250110,20250115,20250207,20250212,20250307,20250312,20250404,20250410,20250502,20250513,20250606,20250611,20250703,20250715,20250801,20250812,20250905,20250911,20251024,20251120,20251216,20251218,20260109,20260113,20260211,20260213,20260306,20260311,20260403,20260410,20260508,20260512,20260605,20260610,20260702,20260714,20260807,20260812,20260904,20260911,20261002"
+
+TZ = "Europe/London"
+pip = syminfo.mintick * 10
+buf = bufPips * pip
+
+inRange     = not na(time(timeframe.period, rangeSess, TZ))
+nextInRange = not na(time(timeframe.period, rangeSess, TZ, -1))
+rangeDone   = inRange and not nextInRange                   // last range bar: orders go live from the next bar (07:00)
+inEntry     = not na(time(timeframe.period, entrySess, TZ))
+nextInEntry = not na(time(timeframe.period, entrySess, TZ, -1))
+lastEntry   = inEntry and not nextInEntry
+eodBar      = not na(time(timeframe.period, "1555-1700", TZ))  // close on the 15:55 bar -> fills at 16:00 open
+
+// ===== Build the Asian range =====
+var float rh = na
+var float rl = na
+if inRange and not inRange[1]
+    rh := high
+    rl := low
+else if inRange
+    rh := math.max(rh, high)
+    rl := math.min(rl, low)
+
+fx = request.currency_rate(syminfo.currency, "USD")
+calcQty(dist, px) =>
+    riskQty = (strategy.equity * riskPct / 100) / (dist * syminfo.pointvalue * fx)
+    capQty  = (strategy.equity * maxLev) / (px * syminfo.pointvalue * fx)
+    math.max(math.min(riskQty, capQty), 0)
+
+// ===== Place the two breakout orders when the range is complete =====
+// Normally on the last range bar (06:55). If that bar is missing from the data, fall back to the first bar after the range.
+var bool placedToday = false
+if inRange and not inRange[1]
+    placedToday := false
+placeNow = not placedToday and (rangeDone or (inEntry and not inEntry[1]))
+dayKey = str.tostring(year(time, TZ) * 10000 + month(time, TZ) * 100 + dayofmonth(time, TZ))
+isNewsDay = str.contains(newsDates, dayKey)
+if placeNow and strategy.position_size == 0 and not na(rh) and rh > rl and not (skipNews and isNewsDay)
+    placedToday := true
+    mid    = (rh + rl) / 2
+    eL     = rh + buf
+    eS     = rl - buf
+    stopL  = stopMode == "A: Opposite side" ? rl - buf : mid
+    stopS  = stopMode == "A: Opposite side" ? rh + buf : mid
+    riskL  = eL - stopL
+    riskS  = stopS - eS
+    mult   = targetMode == "1R" ? 1.0 : targetMode == "2R" ? 2.0 : na
+    tgtL   = na(mult) ? na : eL + riskL * mult
+    tgtS   = na(mult) ? na : eS - riskS * mult
+    strategy.entry("Long",  strategy.long,  qty=calcQty(riskL, eL), stop=eL, oca_name="LB", oca_type=strategy.oca.cancel)
+    strategy.entry("Short", strategy.short, qty=calcQty(riskS, eS), stop=eS, oca_name="LB", oca_type=strategy.oca.cancel)
+    strategy.exit("Long X",  "Long",  stop=stopL, limit=tgtL)
+    strategy.exit("Short X", "Short", stop=stopS, limit=tgtS)
+
+// Unfilled orders expire at the end of the entry window (cancelled on the last window bar, so nothing fills after 10:00)
+if lastEntry or (not inEntry and not rangeDone)
+    strategy.cancel("Long")
+    strategy.cancel("Short")
+
+// Close anything still open at 16:00 London
+if eodBar and strategy.position_size != 0
+    strategy.close_all(comment="16:00 London close")
+
+// ===== Visuals =====
+bgcolor(inRange ? color.new(#26364A, 80) : inEntry ? color.new(#00D9FF, 90) : na, title="Range / entry window")
+plot(inEntry or rangeDone ? rh : na, "Range high", color=color.new(#00D9FF, 20), style=plot.style_linebr)
+plot(inEntry or rangeDone ? rl : na, "Range low",  color=color.new(#FF4D5A, 20), style=plot.style_linebr)

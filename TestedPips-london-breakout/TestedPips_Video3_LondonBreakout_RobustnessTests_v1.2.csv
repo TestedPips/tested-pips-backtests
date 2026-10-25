@@ -1,0 +1,5 @@
+pair,version,target,test,commission_pct_per_side,slippage_ticks,skip_nfp_cpi,net_pnl_usd,net_pnl_pct,max_dd_pct,win_rate_pct,trades,profit_factor,date_range
+USDJPY,A,16:00 close,Full costs (baseline),0.0035,5,false,2829.95,28.30,31.41,47.16,1745,1.043,Mar 12 2017 - Oct 12 2026
+USDJPY,A,16:00 close,Commission only (no slippage),0.0035,0,false,11510.82,115.11,18.64,48.42,1745,1.134,Mar 12 2017 - Oct 12 2026
+USDJPY,A,16:00 close,Zero costs,0,0,false,23550.99,235.51,13.57,49.28,1745,1.217,Mar 12 2017 - Oct 12 2026
+USDJPY,A,16:00 close,Full costs + skip NFP and CPI days,0.0035,5,true,2442.37,24.42,25.91,47.81,1600,1.039,Mar 12 2017 - Oct 12 2026
