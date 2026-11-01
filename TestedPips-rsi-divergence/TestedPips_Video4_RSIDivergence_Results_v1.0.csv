@@ -1,0 +1,31 @@
+pair,symbol,timeframe,version,filter,net_pnl_usd,net_pnl_pct,max_dd_pct,win_rate_pct,wins,trades,profit_factor,date_range,target,costs
+EURUSD,FOREXCOM:EURUSD,15m,A,RSI zone required (30/70),-5952.36,-59.52,64.67,35.05,306,873,0.856,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+EURUSD,FOREXCOM:EURUSD,15m,B,any divergence,-9180.51,-91.81,92.04,33.79,569,1684,0.814,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+EURUSD,FOREXCOM:EURUSD,1H,A,RSI zone required (30/70),-3504.07,-35.04,39.8,32.06,109,340,0.819,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+EURUSD,FOREXCOM:EURUSD,1H,B,any divergence,-4672.51,-46.73,57.97,32.73,200,611,0.829,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+EURUSD,FOREXCOM:EURUSD,4H,A,RSI zone required (30/70),384.17,3.84,10.86,36.59,30,82,1.069,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+EURUSD,FOREXCOM:EURUSD,4H,B,any divergence,2741.81,27.42,14.2,40.36,67,166,1.234,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+GBPUSD,FOREXCOM:GBPUSD,15m,A,RSI zone required (30/70),-7925.92,-79.26,81.46,33.33,354,1062,0.768,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+GBPUSD,FOREXCOM:GBPUSD,15m,B,any divergence,-9760.58,-97.61,97.93,33.0,787,2385,0.787,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+GBPUSD,FOREXCOM:GBPUSD,1H,A,RSI zone required (30/70),-833.15,-8.33,17.92,35.05,116,331,0.956,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+GBPUSD,FOREXCOM:GBPUSD,1H,B,any divergence,-2920.81,-29.21,41.52,34.1,221,648,0.912,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+GBPUSD,FOREXCOM:GBPUSD,4H,A,RSI zone required (30/70),-1196.43,-11.96,17.13,29.89,26,87,0.798,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+GBPUSD,FOREXCOM:GBPUSD,4H,B,any divergence,-969.71,-9.7,13.26,32.78,59,180,0.917,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDJPY,FOREXCOM:USDJPY,15m,A,RSI zone required (30/70),-7871.5,-78.72,81.74,33.76,366,1084,0.787,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDJPY,FOREXCOM:USDJPY,15m,B,any divergence,-9752.07,-97.52,97.7,33.28,787,2365,0.766,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDJPY,FOREXCOM:USDJPY,1H,A,RSI zone required (30/70),-2711.88,-27.12,31.85,33.69,125,371,0.88,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDJPY,FOREXCOM:USDJPY,1H,B,any divergence,-5246.33,-52.46,60.15,32.66,227,695,0.84,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDJPY,FOREXCOM:USDJPY,4H,A,RSI zone required (30/70),1115.65,11.16,10.65,39.24,31,79,1.21,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDJPY,FOREXCOM:USDJPY,4H,B,any divergence,649.15,6.49,10.51,36.36,56,154,1.06,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+AUDUSD,FOREXCOM:AUDUSD,15m,A,RSI zone required (30/70),-8221.26,-82.21,86.78,33.36,362,1085,0.806,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+AUDUSD,FOREXCOM:AUDUSD,15m,B,any divergence,-9641.36,-96.41,96.87,33.94,807,2378,0.839,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+AUDUSD,FOREXCOM:AUDUSD,1H,A,RSI zone required (30/70),-1050.89,-10.51,34.42,35.33,118,334,0.946,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+AUDUSD,FOREXCOM:AUDUSD,1H,B,any divergence,-1686.82,-16.87,37.88,35.37,249,704,0.96,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+AUDUSD,FOREXCOM:AUDUSD,4H,A,RSI zone required (30/70),3354.42,33.54,5.9,50.0,32,64,1.895,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+AUDUSD,FOREXCOM:AUDUSD,4H,B,any divergence,-1277.69,-12.78,32.53,32.03,49,153,0.875,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDCAD,FOREXCOM:USDCAD,15m,A,RSI zone required (30/70),-8987.61,-89.88,90.74,31.87,335,1051,0.721,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDCAD,FOREXCOM:USDCAD,15m,B,any divergence,-9739.1,-97.39,97.53,34.16,823,2409,0.837,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDCAD,FOREXCOM:USDCAD,1H,A,RSI zone required (30/70),-2624.88,-26.25,33.65,33.72,117,347,0.888,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDCAD,FOREXCOM:USDCAD,1H,B,any divergence,-5039.86,-50.4,51.35,32.99,221,670,0.866,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDCAD,FOREXCOM:USDCAD,4H,A,RSI zone required (30/70),-1385.04,-13.85,17.54,28.95,22,76,0.74,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage
+USDCAD,FOREXCOM:USDCAD,4H,B,any divergence,-4111.69,-41.12,41.8,26.7,55,206,0.69,Mar 12 2017 - Oct 12 2026,2R,0.0035% commission/side + 5 ticks slippage

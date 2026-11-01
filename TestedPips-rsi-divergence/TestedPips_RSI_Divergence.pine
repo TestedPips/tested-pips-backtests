@@ -1,0 +1,94 @@
+//@version=6
+// Tested Pips - Video #4: RSI Divergence backtest  (v1.0)
+// One precise, published version of the setup:
+//   1. RSI(14) on close
+//   2. Swing points: confirmed pivots with 5 candles on each side (no lookahead: a pivot is only known 5 candles later)
+//   3. Bullish divergence: price makes a lower swing low, RSI makes a higher low at the same two swings
+//      Bearish divergence: price makes a higher swing high, RSI makes a lower high
+//      The two swings must be 5 to 60 candles apart
+//   4. Version A (as usually taught): the first swing's RSI must be in the zone (below 30 for longs, above 70 for shorts)
+//      Version B: any divergence, no zone filter
+//   5. Entry: market order at the open of the candle after the divergence is confirmed
+//   6. Stop: 1 pip beyond the second swing. Target: 2R. One position at a time
+// Costs (same as Videos 1-3): 0.0035% commission per side (~$7 per round lot) + 5 ticks (0.5 pip) slippage on market/stop fills
+// Risk: 1% of equity per trade, position capped at 30:1 leverage
+strategy("Tested Pips - RSI Divergence", overlay=true, initial_capital=10000, currency=currency.USD, commission_type=strategy.commission.percent, commission_value=0.0035, slippage=5, pyramiding=0, calc_on_every_tick=false, margin_long=1, margin_short=1, process_orders_on_close=false)
+
+// ===== Inputs =====
+version  = input.string("A: Zone required", "Version", options=["A: Zone required", "B: Any divergence"])
+rsiLen   = input.int(14, "RSI length", minval=2)
+pivLen   = input.int(5, "Swing strength (candles each side)", minval=1)
+minGap   = input.int(5, "Min candles between swings", minval=1)
+maxGap   = input.int(60, "Max candles between swings", minval=2)
+obLevel  = input.float(70, "Overbought level")
+osLevel  = input.float(30, "Oversold level")
+rr       = input.float(2.0, "Target (R multiple)", minval=0.5, step=0.5)
+bufPips  = input.float(1.0, "Stop buffer (pips)", minval=0, step=0.5)
+riskPct  = input.float(1.0, "Risk % of equity per trade")
+maxLev   = input.float(30.0, "Max leverage (position cap)")
+
+pip = syminfo.mintick * 10
+buf = bufPips * pip
+r = ta.rsi(close, rsiLen)
+zoneReq = version == "A: Zone required"
+
+fx = request.currency_rate(syminfo.currency, "USD")
+calcQty(dist, px) =>
+    riskQty = (strategy.equity * riskPct / 100) / (dist * syminfo.pointvalue * fx)
+    capQty  = (strategy.equity * maxLev) / (px * syminfo.pointvalue * fx)
+    math.max(math.min(riskQty, capQty), 0)
+
+// ===== Swing points and divergences =====
+pl = ta.pivotlow(low, pivLen, pivLen)
+ph = ta.pivothigh(high, pivLen, pivLen)
+var float lastPL = na
+var float lastPLrsi = na
+var int   lastPLbar = na
+var float lastPH = na
+var float lastPHrsi = na
+var int   lastPHbar = na
+bullDiv = false
+bearDiv = false
+float bullStop = na
+float bearStop = na
+
+if not na(pl)
+    pivBar = bar_index - pivLen
+    pivRsi = r[pivLen]
+    if not na(lastPL)
+        gap = pivBar - lastPLbar
+        if gap >= minGap and gap <= maxGap and pl < lastPL and pivRsi > lastPLrsi and (not zoneReq or lastPLrsi < osLevel)
+            bullDiv := true
+            bullStop := pl - buf
+    lastPL := pl
+    lastPLrsi := pivRsi
+    lastPLbar := pivBar
+
+if not na(ph)
+    pivBar = bar_index - pivLen
+    pivRsi = r[pivLen]
+    if not na(lastPH)
+        gap = pivBar - lastPHbar
+        if gap >= minGap and gap <= maxGap and ph > lastPH and pivRsi < lastPHrsi and (not zoneReq or lastPHrsi > obLevel)
+            bearDiv := true
+            bearStop := ph + buf
+    lastPH := ph
+    lastPHrsi := pivRsi
+    lastPHbar := pivBar
+
+// ===== Orders (market at the next candle's open) =====
+flat = strategy.position_size == 0
+if flat and bullDiv and not bearDiv
+    risk = close - bullStop
+    if risk > 0
+        strategy.entry("Long", strategy.long, qty=calcQty(risk, close))
+        strategy.exit("Long X", "Long", stop=bullStop, limit=close + risk * rr)
+if flat and bearDiv and not bullDiv
+    risk = bearStop - close
+    if risk > 0
+        strategy.entry("Short", strategy.short, qty=calcQty(risk, close))
+        strategy.exit("Short X", "Short", stop=bearStop, limit=close - risk * rr)
+
+// ===== Visuals =====
+plotshape(bullDiv, "Bullish divergence", shape.triangleup, location.belowbar, color.new(#00D9FF, 0), size=size.tiny)
+plotshape(bearDiv, "Bearish divergence", shape.triangledown, location.abovebar, color.new(#FF4D5A, 0), size=size.tiny)
