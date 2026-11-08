@@ -1,0 +1,64 @@
+//@version=6
+// Tested Pips - Video #5: MACD Crossover backtest  (v1.0)
+// One precise, published version of the setup:
+//   1. MACD (12, 26, 9) on close
+//   2. Buy: the MACD line crosses above the signal line. Sell: the MACD line crosses below the signal line
+//   3. Version A (the popular "MACD + 200 EMA" version): buys only when the cross happens below the zero line
+//      and price closes above the 200 EMA; sells only when the cross happens above the zero line and price closes below the 200 EMA
+//      Version B: every crossover, no filters
+//   4. Entry: market order at the open of the candle after the cross
+//   5. Stop: 1 pip beyond the lowest low (buys) / highest high (sells) of the last 10 candles. Target: 1.5R
+//   6. One position at a time
+// Costs (same as Videos 1-4): 0.0035% commission per side (~$7 per round lot) + 5 ticks (0.5 pip) slippage on market/stop fills
+// Risk: 1% of equity per trade, position capped at 30:1 leverage
+strategy("Tested Pips - MACD Crossover", overlay=true, initial_capital=10000, currency=currency.USD, commission_type=strategy.commission.percent, commission_value=0.0035, slippage=5, pyramiding=0, calc_on_every_tick=false, margin_long=1, margin_short=1, process_orders_on_close=false)
+
+// ===== Inputs =====
+version  = input.string("A: 200 EMA + zero line", "Version", options=["A: 200 EMA + zero line", "B: Any crossover"])
+fastLen  = input.int(12, "MACD fast length", minval=1)
+slowLen  = input.int(26, "MACD slow length", minval=2)
+sigLen   = input.int(9, "MACD signal length", minval=1)
+emaLen   = input.int(200, "Trend EMA length", minval=2)
+swingLen = input.int(10, "Stop: swing lookback (candles)", minval=2)
+rr       = input.float(1.5, "Target (R multiple)", minval=0.5, step=0.5)
+bufPips  = input.float(1.0, "Stop buffer (pips)", minval=0, step=0.5)
+riskPct  = input.float(1.0, "Risk % of equity per trade")
+maxLev   = input.float(30.0, "Max leverage (position cap)")
+
+pip = syminfo.mintick * 10
+buf = bufPips * pip
+[macdLine, sigLine, hist] = ta.macd(close, fastLen, slowLen, sigLen)
+ema = ta.ema(close, emaLen)
+filt = version == "A: 200 EMA + zero line"
+
+fx = request.currency_rate(syminfo.currency, "USD")
+calcQty(dist, px) =>
+    riskQty = (strategy.equity * riskPct / 100) / (dist * syminfo.pointvalue * fx)
+    capQty  = (strategy.equity * maxLev) / (px * syminfo.pointvalue * fx)
+    math.max(math.min(riskQty, capQty), 0)
+
+// ===== Signals (on the closed candle) =====
+crossUp = ta.crossover(macdLine, sigLine)
+crossDn = ta.crossunder(macdLine, sigLine)
+buySig  = crossUp and (not filt or (macdLine < 0 and sigLine < 0 and close > ema))
+sellSig = crossDn and (not filt or (macdLine > 0 and sigLine > 0 and close < ema))
+lowStop  = ta.lowest(low, swingLen) - buf
+highStop = ta.highest(high, swingLen) + buf
+
+// ===== Orders (market at the next candle's open) =====
+flat = strategy.position_size == 0
+if flat and buySig
+    risk = close - lowStop
+    if risk > 0
+        strategy.entry("Long", strategy.long, qty=calcQty(risk, close))
+        strategy.exit("Long X", "Long", stop=lowStop, limit=close + risk * rr)
+if flat and sellSig
+    risk = highStop - close
+    if risk > 0
+        strategy.entry("Short", strategy.short, qty=calcQty(risk, close))
+        strategy.exit("Short X", "Short", stop=highStop, limit=close - risk * rr)
+
+// ===== Visuals =====
+plot(ema, "200 EMA", color=color.new(#F4F7FA, 30), linewidth=2)
+plotshape(buySig, "Buy signal", shape.triangleup, location.belowbar, color.new(#00D9FF, 0), size=size.tiny)
+plotshape(sellSig, "Sell signal", shape.triangledown, location.abovebar, color.new(#FF4D5A, 0), size=size.tiny)

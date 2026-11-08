@@ -1,0 +1,26 @@
+"Check 1a: EUR/USD 15m Version A, cost levels (2,096 trades, 40.55% wins in all three)"
+Costs,Net PnL USD,Return %,Profit factor,Max DD %
+Zero costs,1892.96,18.93,1.01,57.25
+Commission only,-6923.83,-69.24,0.936,83.86
+Commission + 0.5 pip slippage,-9229.22,-92.29,0.873,94.45
+
+"Check 1b: all ten 15m tests, zero costs vs full costs (same trades and win rate)"
+Pair,Version,Trades,Win %,Zero costs %,Zero costs PF,Full costs %,Full costs PF
+EURUSD,A,2096,40.55,18.93,1.01,-92.29,0.873
+EURUSD,B,3826,39.47,-55.08,0.955,-99.35,0.758
+GBPUSD,A,2599,40.02,-14.9,0.994,-94.94,0.897
+GBPUSD,B,4755,38.63,-85.78,0.931,-99.84,0.791
+USDJPY,A,2446,41.21,83.0,1.036,-87.33,0.882
+USDJPY,B,4834,41.21,199.9,1.034,-97.84,0.862
+AUDUSD,A,2578,39.64,-32.44,0.979,-96.41,0.838
+AUDUSD,B,5186,41.63,462.52,1.058,-97.88,0.874
+USDCAD,A,2434,40.39,6.66,1.005,-95.23,0.813
+USDCAD,B,4658,40.15,-15.98,0.993,-99.65,0.803
+
+"Check 2: the three winners (all Version A), full costs, net PnL by exit year (USD)"
+Test,Trades,Total,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026,2017-21,2022-26,Profitable years,Top 5 trades,Without top 5,Longs,Shorts,Commission paid,Median losing trade (pips)
+USDJPY 4H A,144,1656.12,-16.51,202.21,414.68,-7.56,61.36,771.65,361.97,198.41,131.78,-461.87,654.18,1001.94,7/10,897.48,758.64,1492.62,163.5,193.63,69.8
+USDCAD 1H A,596,963.61,757.99,200.15,-1640.94,887.67,-431.5,294.94,179.63,433.72,-431.89,713.84,-226.63,1190.24,7/10,827.84,135.77,2404.15,-1440.54,2108.25,32.3
+AUDUSD 4H A,158,455.07,-70.52,400.05,369.81,1248.24,-765.01,343.81,-673.36,169.78,126.2,-693.93,1182.57,-727.5,6/10,864.86,-409.79,-198.16,653.23,164.11,57.1
+
+"Note: USD/JPY 4H A report total is +1,670.18 including an open trade at the end of the data; closed trades total +1,656.12."
